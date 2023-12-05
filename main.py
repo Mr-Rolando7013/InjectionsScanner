@@ -5,9 +5,64 @@ import requests
 import itertools
 import json
 import re
+from bs4 import BeautifulSoup
+import concurrent.futures
+
+def getProxies():
+    r = requests.get('https://free-proxy-list.net/')
+    soup = BeautifulSoup(r.content, 'html.parser')
+    table = soup.find('tbody')
+    proxies = []
+    for row in table:
+        if row.find_all('td')[4].text == 'elite proxy':
+            proxy = ':'.join([row.find_all('td')[0].text, row.find_all('td')[1].text])
+            proxies.append(proxy)
+        else:
+            pass
+    return proxies
+
+def proxy_from_txt(filename):
+    with open(filename, 'r') as f:
+        txt_proxies = [line.strip() for line in f]
+    return txt_proxies
+
+def extract(proxy, url, header, data):
+    print("U-R-L: ", "https://" + url)
+    for proxy_chain in proxy:
+        try:
+            print("Trying to connect to: ", proxy_chain)
+            response = requests.post("https://" + url, headers=header, data=data, proxies={'http':proxy_chain, 'https:':proxy_chain})
+            if response.status_code == 200:
+                working = {
+                    'proxy':proxy_chain,
+                    'statuscode':response.status_code,
+                    'data':response.text[:200]
+                }
+                print(proxy_chain)
+                print("Request was successful!")
+                print("Response:")
+                print(response.text)
+                print("Proxy: ", proxy)
+        except requests.ConnectionError:
+
+            print(proxy_chain, "failed")
+
+
+def main():
+    txt_prox = proxy_from_txt('proxy-list.txt')
+    proxylist = getProxies()
+
+    for p in txt_prox:
+        proxylist.append(p)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(extract, proxylist)
+    return
 
 def delete_char_at_position(input_string, position):
     return input_string[:position] + input_string[position + 1:]
+
+
 
 burpRequest = sys.argv[-1]
 pattern = re.compile("\=([^&]+)\&?")
@@ -15,7 +70,7 @@ pattern = re.compile("\=([^&]+)\&?")
 
 with open(burpRequest, "r") as fp:
     lines = fp.readlines()
-    
+
 body = lines[-1]
 print("Lines:", lines[-1])
 
@@ -27,6 +82,8 @@ endpoint_url = endpoint[1]
 print("Endpoint URL: ", endpoint_url)
 endpoint_url = endpoint_url.replace(' ', '')
 endpoint_url = endpoint_url.replace('\n', '')
+
+proxylist = getProxies()
 
 url = lines[1].split(':')
 host = url[1].replace(' ', '')
@@ -110,12 +167,7 @@ else:
                 print("Updated Text: ", updated_text)
                 no_body_request.append(updated_text)
 
-            response = requests.post('https://' + url_with_endpoint, headers=header, data=updated_text)
-            if response.status_code == 200:
-                print("Request was successful!")
-                print("Response:")
-                print(response.text)
-            else:
-                print(f"Request failed with status code {response.status_code}")
-                print("Response:")
-                print(response.text)
+            extract(proxylist, url_with_endpoint, header, updated_text)
+
+
+            #response = requests.post('https://' + url_with_endpoint, headers=header, data=updated_text)
