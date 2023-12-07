@@ -9,6 +9,9 @@ from bs4 import BeautifulSoup
 import concurrent.futures
 
 correctProxies = []
+updated_text = []
+header = {}
+url_with_endpoint = ""
 def getProxies():
     r = requests.get('https://free-proxy-list.net/')
     soup = BeautifulSoup(r.content, 'html.parser')
@@ -49,8 +52,7 @@ def get_functional_proxies(proxy):
         print(proxy, "failed")
 
 
-
-def extract(proxy):
+def body_with_payload():
     burpRequest = sys.argv[-1]
     pattern = re.compile("\=([^&]+)\&?")
 
@@ -60,7 +62,6 @@ def extract(proxy):
     body = lines[-1]
     print("Lines:", lines[-1])
 
-    header = {}
     no_body_request = lines[2:-1]
 
     endpoint = lines[0].split(' ')
@@ -69,7 +70,6 @@ def extract(proxy):
     endpoint_url = endpoint_url.replace(' ', '')
     endpoint_url = endpoint_url.replace('\n', '')
 
-    proxylist = main()
 
     url = lines[1].split(':')
     host = url[1].replace(' ', '')
@@ -149,29 +149,32 @@ def extract(proxy):
 
                 for key in data:
                     data[key] = payload
-                    updated_text = json.dumps(data)
+                    updated_text.append(json.dumps(data))
                     print("Updated Text: ", updated_text)
-                    no_body_request.append(updated_text)
+                    #no_body_request.append(updated_text)
 
-                    try:
-                        print("Trying to connect to: ", proxy)
-                        response = requests.post("https://" + url_with_endpoint, headers=header, data=updated_text, proxies={'http':proxy, 'https:':proxy})
-                        if response.status_code == 200:
-                            working = {
-                                'proxy':proxy,
-                                'statuscode':response.status_code,
-                                'data':response.text[:200]
-                            }
-                            print(proxy)
-                            print("Request was successful!")
-                            print("Response:")
-                            print(response.text)
-                            print("Proxy: ", proxy)
-                    except requests.ConnectionError:
 
-                        print(proxy, "failed")
+def extract(proxy, datas):
+    try:
+        print("EXTRAAAACT! Trying to connect to: ", proxy)
+        response = requests.post("https://" + url_with_endpoint, headers=header, data=datas, proxies={'http':proxy, 'https:':proxy})
+        print("EXTRAAACT RESPONSEEE: ", response, datas, proxy)
+        if response.status_code == 200:
+            working = {
+                'proxy':proxy,
+                'statuscode':response.status_code,
+                'data':response.text[:200]
+            }
+            print(proxy)
+            print("Request was successful!")
+            print("Response:")
+            print(response.text)
+            print("Proxy: ", proxy)
+    except requests.ConnectionError:
 
-                    return proxy
+        print(proxy, "failed")
+
+        return proxy
 
 def main2():
     # txt_prox = proxy_from_txt('proxy-list.txt')
@@ -186,10 +189,19 @@ def main2():
 
 def main():
 
-    main2()
+    proxylist = getProxies()
+    body_with_payload()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(extract, correctProxies)
+    with concurrent.futures.ThreadPoolExecutor() as executor1:
+        results1 = executor1.map(get_functional_proxies, proxylist)
+
+        print("blyat")
+
+        #concurrent.futures.wait(futures1, return_when=concurrent.futures.ALL_COMPLETED)
+        for future in results1:
+            pass
+
+        executor1.map(extract, correctProxies, updated_text)
     # response = requests.post('https://' + url_with_endpoint, headers=header, data=updated_text)
     print("Correct proxies: ", correctProxies)
     return
