@@ -8,6 +8,14 @@ import re
 from bs4 import BeautifulSoup
 import concurrent.futures
 
+class Payload:
+    def __int__(self, text, visited):
+        self.text = text
+        self.visited = visited
+
+    def showPayload(self):
+        print(f"The payload is {self.text} and is visited: {self.visited}")
+
 correctProxies = []
 updated_text = []
 header = {}
@@ -150,7 +158,10 @@ def body_with_payload():
 
                 for key in data:
                     data[key] = payload
-                    updated_text.append(json.dumps(data))
+                    temp = Payload()
+                    temp.text = json.dumps(data)
+                    temp.visited = 0
+                    updated_text.append(temp)
                     print("Updated Text: ", updated_text)
                     #no_body_request.append(updated_text)
 
@@ -158,28 +169,30 @@ def body_with_payload():
 def extract(proxy, datas):
     global url_with_endpoint, updated_text
     for data in updated_text:
-        try:
-            print("EXTRAAAACT! Trying to connect to: ", proxy)
-            print("ROLIS!!")
-            response = requests.post("https://" + url_with_endpoint, headers=header, data=data, proxies={'http': proxy, 'https': proxy})
-            print("EXTRAAACT RESPONSEEE: ", response, data, proxy)
-            print("Test response: ", response.text)
-            if response.status_code == 200:
-                working = {
-                    'proxy':proxy,
-                    'statuscode':response.status_code,
-                    'data':response.text[:200]
-                }
-                print(proxy)
-                print("Request was successful!")
-                print("Response:")
-                print(response.text)
-                print("Proxy: ", proxy)
-        except requests.ConnectionError:
+        if data.visited == 0:
+            try:
+                print("EXTRAAAACT! Trying to connect to: ", proxy)
+                response = requests.post("https://" + url_with_endpoint, headers=header, data=data.text, proxies={'http': proxy, 'https': proxy})
+                data.visited = 1
+                print("DATAAA!: ", data.text, "IsVisited: ", data.visited)
+                print("EXTRAAACT RESPONSEEE: ", response, data, proxy)
+                print("Test response: ", response.text)
+                if response.status_code == 200:
+                    working = {
+                        'proxy':proxy,
+                        'statuscode':response.status_code,
+                        'data':response.text[:200]
+                    }
+                    print(proxy)
+                    print("Request was successful!")
+                    print("Response:")
+                    print(response.text)
+                    print("Proxy: ", proxy)
+            except requests.ConnectionError:
 
-            print(proxy, "failed")
+                print(proxy, "failed")
 
-            return proxy
+                return proxy
 
 def main2():
     # txt_prox = proxy_from_txt('proxy-list.txt')
@@ -216,46 +229,6 @@ def main():
     # response = requests.post('https://' + url_with_endpoint, headers=header, data=updated_text)
     print("Correct proxies: ", correctProxies)
 
-    """
-    print("UPDATED TEXT: ", updated_text[0])
-    print("Header: ", header)
-    print("URL WITH ENDPOINT!!!", url_with_endpoint)
-
-    try:
-        print("Outisde function!!!!!!! Trying to connect to: ", '66.94.127.108:30010')
-        response = requests.post("https://juice-shop.herokuapp.com/rest/user/login", headers=header, data=updated_text[30], proxies={'http': '66.94.127.108:30010', 'https': '66.94.127.108:30010'})
-        print("EXTRAAACT RESPONSEEE: ", response, updated_text[30], '66.94.127.108:30010')
-        if response.status_code == 200:
-            working = {
-                'proxy':'66.94.127.108:30010',
-                'statuscode':response.status_code,
-                'data':response.text[:200]
-            }
-            print('66.94.127.108:30010')
-            print("Request was successful!")
-            print("Response:")
-            print(response.text)
-            print("Proxy: ", '66.94.127.108:30010')
-    except requests.ConnectionError:
-
-        print('66.94.127.108:30010', "failed")
-
-    try:
-        print("Local Request!!!!!!!")
-        response = requests.post("https://juice-shop.herokuapp.com/rest/user/login", headers=header, data=updated_text[30])
-        print("EXTRAAACT RESPONSEEE: ", response, updated_text[30])
-        if response.status_code == 200:
-            working = {
-                'statuscode':response.status_code,
-                'data':response.text[:200]
-            }
-            print("Request was successful!")
-            print("Response:")
-            print(response.text)
-    except requests.ConnectionError:
-
-        print('Local', "failed")
-    """
 
     return
 
