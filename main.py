@@ -53,7 +53,7 @@ def get_functional_proxies(proxy):
 
 
 def body_with_payload():
-    global url_with_endpoint
+    global url_with_endpoint, updated_text
     burpRequest = sys.argv[-1]
     pattern = re.compile("\=([^&]+)\&?")
 
@@ -156,28 +156,30 @@ def body_with_payload():
 
 
 def extract(proxy, datas):
-    global url_with_endpoint
-    try:
-        print("EXTRAAAACT! Trying to connect to: ", proxy)
-        print("ROLIS!!")
-        response = requests.post("https://" + url_with_endpoint, headers=header, data=datas, proxies={'http': proxy, 'https': proxy})
-        print("EXTRAAACT RESPONSEEE: ", response, datas, proxy)
-        if response.status_code == 200:
-            working = {
-                'proxy':proxy,
-                'statuscode':response.status_code,
-                'data':response.text[:200]
-            }
-            print(proxy)
-            print("Request was successful!")
-            print("Response:")
-            print(response.text)
-            print("Proxy: ", proxy)
-    except requests.ConnectionError:
+    global url_with_endpoint, updated_text
+    for data in updated_text:
+        try:
+            print("EXTRAAAACT! Trying to connect to: ", proxy)
+            print("ROLIS!!")
+            response = requests.post("https://" + url_with_endpoint, headers=header, data=data, proxies={'http': proxy, 'https': proxy})
+            print("EXTRAAACT RESPONSEEE: ", response, data, proxy)
+            print("Test response: ", response.text)
+            if response.status_code == 200:
+                working = {
+                    'proxy':proxy,
+                    'statuscode':response.status_code,
+                    'data':response.text[:200]
+                }
+                print(proxy)
+                print("Request was successful!")
+                print("Response:")
+                print(response.text)
+                print("Proxy: ", proxy)
+        except requests.ConnectionError:
 
-        print(proxy, "failed")
+            print(proxy, "failed")
 
-        return proxy
+            return proxy
 
 def main2():
     # txt_prox = proxy_from_txt('proxy-list.txt')
